@@ -394,7 +394,9 @@ ask_user_for_config() {
       fi
     fi
 
-    check_IP_match $hostname
+    if [ "$letsencrypt_status" != "ENTER to skip" ]
+       check_IP_match $hostname
+    fi
 
     echo -e "\nDoes this look right?\n"
     echo "Hostname      : $hostname"
