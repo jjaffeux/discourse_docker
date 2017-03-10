@@ -379,24 +379,28 @@ ask_user_for_config() {
         smtp_password=$new_value
     fi
 
-    if [ ! -z $letsencrypt_account_email ]
+    # Don't offer Let's Encrypt if we haven't bootstrapped already
+    if [ $bootstrap == 1 ]
     then
-      read -p "Let's Encrypt account email? ($letsencrypt_status) [$letsencrypt_account_email]: " new_value
-      if [ ! -z $new_value ]
-      then
-          letsencrypt_account_email=$new_value
-          if [ "${new_value,,}" = "off" ]
-          then
-            letsencrypt_status="ENTER to skip"
-          else
-            letsencrypt_status="Enter 'OFF' to disable."
-          fi
-      fi
-    fi
+	if [ ! -z $letsencrypt_account_email ]
+	then
+	    read -p "Let's Encrypt account email? ($letsencrypt_status) [$letsencrypt_account_email]: " new_value
+	    if [ ! -z $new_value ]
+	    then
+		letsencrypt_account_email=$new_value
+		if [ "${new_value,,}" = "off" ]
+		then
+		    letsencrypt_status="ENTER to skip"
+		else
+		  letsencrypt_status="Enter 'OFF' to disable."
+		fi
+	    fi
+	fi
 
-    if [ "$letsencrypt_status" == "Enter 'OFF' to disable." ]
-    then
-       check_IP_match $hostname
+	if [ "$letsencrypt_status" == "Enter 'OFF' to disable." ]
+	then
+	    check_IP_match $hostname
+	fi
     fi
 
     echo -e "\nDoes this look right?\n"
@@ -407,11 +411,13 @@ ask_user_for_config() {
     echo "SMTP username : $smtp_user_name"
     echo "SMTP password : $smtp_password"
 
-    if [ "$letsencrypt_status" == "Enter 'OFF' to disable." ]
+    if [ $bootstrap == 1 ]
     then
-      echo "Let's Encrypt : $letsencrypt_account_email"
+	if [ "$letsencrypt_status" == "Enter 'OFF' to disable." ]
+	then
+	    echo "Let's Encrypt : $letsencrypt_account_email"
+	fi
     fi
-
 
     echo ""
     read -p "ENTER to continue, 'n' to try again, Ctrl+C to exit: " config_ok
@@ -538,6 +544,18 @@ ask_user_for_config() {
 }
 
 ##
+## Check that we've bootstrapped
+##
+check_bootstrap() {
+  if [ -f ./shared/standalone/log/rails/production.log ]
+  then
+      bootstrap=1
+  else
+    bootstrap=0
+  fi
+}
+
+##
 ## is our config file valid? Does it have the required fields set?
 ##
 validate_config() {
@@ -594,6 +612,7 @@ check_root
 check_and_install_docker
 check_disk_and_memory
 check_ports
+check_bootstrap
 
 ##
 ## make a copy of the simple standalone config file
